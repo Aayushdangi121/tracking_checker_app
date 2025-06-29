@@ -2,3 +2,4 @@ Default
 CanadaPost
 UPS
 FEdex
+Fedex

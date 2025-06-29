@@ -79,6 +79,33 @@
     <a href="{{ url_for('main_page') }}">← Back to Main Page</a>
   </p>
 
+  <!-- ✅ NEW BLOCK: To be Troubleshooted -->
+  <h3 class="mt-5">🛠 To be Troubleshooted</h3>
+  <table class="table table-bordered table-sm mt-3 bg-white">
+    <thead class="table-dark">
+      <tr>
+        <th style="width:70px">SN</th>
+        <th>Picklist Number</th>
+        <th>Scanner</th>
+        <th>Carrier</th>
+        <th>Remark</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for code, scanners, carrier, remark in to_troubleshoot %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ code }}</td>
+        <td>{{ scanners }}</td>
+        <td>{{ carrier }}</td>
+        <td>{{ remark }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-center">✅ No pending issues — all cleared!</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
   <!-- confirm-modal -->
   <div id="confirmModal">
     <div id="confirmBox">

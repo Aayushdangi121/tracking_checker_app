@@ -3,10 +3,36 @@
 # 2025-06-27  (troubleshoot file upgraded to 6 columns)
 
 from flask import Flask, render_template, request, redirect, url_for
+from dataclasses import dataclass
+from flask_login import (
+    LoginManager, login_user, logout_user,
+    login_required, current_user, UserMixin
+)
+from werkzeug.security import check_password_hash
+import csv
 import os
 from datetime import datetime
+import  secrets
 
 app = Flask(__name__)
+app.secret_key = secrets.token_hex(16)
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+# ─── Role-Based Access Decorator ─────────────────────────────
+from functools import wraps
+from flask import abort
+
+def role_required(*roles):
+    def wrapper(func):
+        @wraps(func)
+        def secure_view(*args, **kwargs):
+            if not current_user.is_authenticated:
+                return login_manager.unauthorized()
+            if current_user.role not in roles:
+                return abort(403)  # Forbidden
+            return func(*args, **kwargs)
+        return secure_view
+    return wrapper
 
 # ────────────────────────────── paths ──────────────────────────────
 DATA          = "data"
@@ -52,10 +78,12 @@ PASS  = load_users()
 USERS = sorted(PASS)
 
 def ensure_user(n):
+    global USERS, PASS
     if n and n not in USERS:
         USERS.append(n)
-        PASS[n] = ""
+        PASS[n] = ""             # blank password in users.txt
         save_users(PASS)
+        USERS.sort()
 
 def load_carriers():  return rl(CARRIERS_FILE) or ["Default"]
 def save_carriers(l): of(CARRIERS_FILE, l)
@@ -219,16 +247,40 @@ def merge_scanned(code, user, carrier, is_good, has_tail):
     rows.append(f"{code}\t{carrier}\t{user}\t{rmk}")
     of(SCANNED_FILE, rows)
     return rmk, carrier
+# ─── User Authentication Setup ───────────────────────────
+@dataclass
+class User(UserMixin):
+    id: str
+    role: str
+def load_auth_users(path="data/users.csv"):
+    users = {}
+    with open(path, newline='') as f:
+        rdr = csv.DictReader(f)
+        for row in rdr:
+            users[row["username"]] = row
+    return users
 
+AUTH_USERS = load_auth_users()
+
+@login_manager.user_loader
+def user_loader(username):
+    row = AUTH_USERS.get(username)
+    return User(row["username"], row["role"]) if row else None
 # ─────────────────── ROUTES ───────────────────
 @app.route("/")
 def root(): return redirect(url_for("main_page"))
 
 @app.route("/main")
-def main_page(): return render_template("main.html")
+@login_required
+@role_required("admin", "power","account_only")   # all users can see
+def main_page():
+    return render_template("main.html")
 
 # ---------- ENTER ----------
 @app.route("/enter", methods=["GET", "POST"])
+@role_required("power","admin")
+
+@login_required
 def enter():
     msg = ""
     if request.method == "POST":
@@ -263,6 +315,9 @@ def enter():
  
 # ---------- SCAN ----------
 @app.route("/scan", methods=["GET", "POST"])
+@role_required("power","admin")
+
+@login_required
 def scan():
     msg = ""
     if request.method == "POST":
@@ -302,23 +357,32 @@ def scan():
                            rows=rows, incomplete=incom, message=msg)
 
 # ---------- UNSCANNED ----------
-@app.route("/unscanned")
+@app.route("/unscanned", methods=["GET", "POST"])
+@role_required("admin","power")
+
+@login_required
+
 def unscanned():
     stored  = load_picklists()
     scanned = {r.split("\t")[0] for r in rl(SCANNED_FILE)}
     missing = [(c, car) for c, car in stored if c not in scanned]
 
     incom = []
+    to_trouble = {}
     for r in rl(SCANNED_FILE):
         code, car, scn, rmk = _parse_scan_row(r)
         pend, _ = _split_remark(rmk)
         if pend:
             incom.append((code, car, ", ".join(sorted(pend)), "Not solved yet"))
+        if pend:
+            scanners=','.join(sorted(set(scn.split(","))))
+            to_trouble[code]=(code,scanners,car,"In progress")
 
     missing.sort(key=lambda x: (x[1].lower(), x[0]))
     incom.sort(key=lambda x: (x[1].lower(), x[0]))
+    to_trouble= sorted(to_trouble.values(),key=lambda x:(x[2].lower(),x[0]))
     return render_template("unscanned.html",
-                           rows_missing=missing, uncompleted=incom)
+                           rows_missing=missing, uncompleted=incom, to_troubleshoot=to_trouble)
 @app.route("/delete_unscanned", methods=["POST"])
 def delete_unscanned():
     to_delete = request.form.getlist("delete_items")
@@ -329,6 +393,10 @@ def delete_unscanned():
 
 # ---------- ACCOUNT ----------
 @app.route("/account/<name>", methods=["GET", "POST"])
+@role_required("admin","power","account_only")
+
+@login_required
+
 def account(name):
     name = name.capitalize(); ensure_user(name)
     sel_car = request.args.get("carrier", "Default"); ensure_carrier(sel_car)
@@ -369,6 +437,9 @@ def account(name):
 
 # ---------- TROUBLESHOOT ----------
 @app.route("/troubleshoot")
+@role_required("power","admin")
+
+@login_required
 def troubleshoot():
     data = [_upgrade(r.split("\t")) for r in rl(TROUBLE_FILE)]
     return render_template("troubleshoot.html", data=data)
@@ -405,6 +476,10 @@ def troubleshoot_action():
 
 # ---------- CREATE / DELETE (unchanged) ----------
 @app.route("/create_account", methods=["GET", "POST"])
+@role_required("admin")
+
+@login_required
+
 def create_account():
     msg = ""
     act = request.form.get("action") or request.form.get("carrier_action")
@@ -446,6 +521,24 @@ def create_account():
                     msg = "⚠️ Cannot delete."
     return render_template("create_account.html",
                            users=USERS, carriers=CARRIERS, message=msg)
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        uname = request.form["username"]
+        pwd   = request.form["password"]
+        row   = AUTH_USERS.get(uname)
+        
+        if row and check_password_hash(row["password_hash"], pwd):
+            login_user(User(row["username"], row["role"]))
+            return redirect(request.args.get("next") or url_for("main"))
+        return render_template("login.html", error="❌ Wrong username or password")
+    return render_template("login.html")
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return "<h3>Logged out. <a href='/login'>Login again</a></h3>"
 
 # ───────────────────────── runner ─────────────────────────
 if __name__ == "__main__":

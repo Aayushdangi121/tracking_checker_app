@@ -1,4 +1,4 @@
-Global	
-Kevin	u
-Patel	
+Global	{'password_hash': '', 'role': 'limited'}
 Frank	
+Patel	
+user1	
