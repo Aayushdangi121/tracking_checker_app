@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Account – CTS LOGISTICS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
+            padding: 40px;
+            color: #f0f0f0;
+        }
+        h2 {
+            background: linear-gradient(to right, #d50000, #ff1744);
+            color: white;
+            padding: 14px 22px;
+            border-radius: 10px;
+            margin-top: 40px;
+            box-shadow: 0 4px 12px rgba(255, 0, 0, 0.3);
+            font-size: 22px;
+            letter-spacing: 1px;
+        }
+        form {
+            background-color: #1e1e1e;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+            margin-top: 20px;
+            max-width: 550px;
+            transition: 0.3s;
+        }
+        form:hover {
+            box-shadow: 0 6px 16px rgba(255, 23, 68, 0.25);
+        }
+        label {
+            display: block;
+            margin: 12px 0 6px;
+            font-weight: 600;
+            color: #ff5252;
+            font-size: 15px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 14px;
+            margin-bottom: 18px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            background-color: #2c2c2c;
+            color: #fff;
+            font-size: 15px;
+            transition: border 0.3s;
+        }
+        input:focus, select:focus {
+            border: 1px solid #ff5252;
+            outline: none;
+        }
+        input::placeholder {
+            color: #999;
+        }
+        button {
+            background: linear-gradient(to right, #ff1744, #d50000);
+            color: white;
+            font-weight: bold;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            box-shadow: 0 4px 8px rgba(255, 0, 0, 0.3);
+            transition: background 0.3s, transform 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(to right, #ff5252, #c62828);
+            transform: scale(1.02);
+        }
+        .msg {
+            margin-top: 25px;
+            background-color: #ffe5e5;
+            color: #b71c1c;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(255, 0, 0, 0.2);
+        }
+        a {
+            display: inline-block;
+            margin-top: 30px;
+            text-decoration: none;
+            color: #ff1744;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        a:hover {
+            text-decoration: underline;
+            color: #ff5252;
+        }
+        /* delete confirmation */
+        #confirmModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        #confirmBox {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+        #confirmBox h5 {
+            margin-bottom: 1rem;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <h2>➕ Create Account</h2>
+    <form method="post">
+        <input type="hidden" name="action" value="add">
+        <label>Account name</label>
+        <input name="name" required placeholder="Account name">
+        <input name="pwd" placeholder="Optional password">
+        <button type="submit">Create</button>
+    </form>
+
+    <h2>🗑 Delete Account</h2>
+    <form method="post" id="deleteForm">
+        <input type="hidden" name="action" value="delete">
+        <select name="name" required>
+            <option value="">Choose...</option>
+            {% for u in users %}
+            <option value="{{ u }}">{{ u }}</option>
+            {% endfor %}
+        </select>
+        <button type="button" onclick="showConfirm()">Delete</button>
+    </form>
+
+    <h2>🚚 Add Carrier</h2>
+    <form method="post">
+        <input type="hidden" name="carrier_action" value="add_car">
+        <label>Carrier (e.g. UPS, FedEx)</label>
+        <input name="carrier_name" required placeholder="Carrier (e.g. UPS, FedEx)">
+        <button type="submit">Add</button>
+    </form>
+
+    <h2>🗑 Delete Carrier</h2>
+    <form method="post">
+        <input type="hidden" name="carrier_action" value="delete_car">
+        <select name="carrier_name" required>
+            <option value="">Choose...</option>
+            {% for c in carriers %}
+            {% if c != "Default" %}
+            <option value="{{ c }}">{{ c }}</option>
+            {% endif %}
+            {% endfor %}
+        </select>
+        <button type="submit">Delete</button>
+    </form>
+
+    {% if message %}
+    <div class="msg">{{ message }}</div>
+    {% endif %}
+
+    <p><a href="{{ url_for('main_page') }}">← Back to Main Page</a></p>
+
+    <!-- Delete confirmation modal -->
+    <div id="confirmModal">
+      <div id="confirmBox">
+        <h5>Are you sure you want to delete the selected account?</h5>
+        <div class="d-flex justify-content-center gap-3">
+          <button class="btn btn-danger px-4" onclick="confirmDelete()">Yes</button>
+          <button class="btn btn-secondary px-4" onclick="hideConfirm()">No</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function showConfirm() {
+        document.getElementById("confirmModal").style.display = "flex";
+      }
+      function hideConfirm() {
+        document.getElementById("confirmModal").style.display = "none";
+      }
+      function confirmDelete() {
+        document.getElementById("deleteForm").submit();
+      }
+    </script>
+</body>
+</html>

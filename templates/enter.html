@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Enter Picklist Numbers</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: url("/static/image6.jpg") no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    .error { color: red; }
+
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    td, th {
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+    }
+
+    input[name="start"], input[name="end"] {
+      display: inline-block;
+      width: 130px;
+      margin-right: 10px;
+    }
+
+    input[type="date"], select[name="carrier"] {
+      margin-right: 10px;
+    }
+
+    form {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 1.25rem 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      max-width: 800px;
+      margin-bottom: 25px;
+    }
+
+    h2 {
+      color: #0057b8;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px 20px;
+      border-radius: 10px;
+      display: inline-block;
+    }
+
+    button {
+      background: #0057b8;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0041a3;
+    }
+
+    a {
+      color: #0057b8;
+      font-weight: bold;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    input[type="checkbox"] {
+      transform: scale(1.2);
+      margin-right: 6px;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>📋 Enter Picklist Numbers</h2>
+
+  <!-- Add Picklist -->
+  <form method="post">
+    <label for="picklist">Picklist:</label>
+    <input name="picklist" id="picklist" maxlength="13" required>
+    <label>Carrier:</label>
+    <select name="carrier">
+      {% for c in carriers %}
+        <option value="{{ c }}">{{ c }}</option>
+      {% endfor %}
+    </select>
+    <button name="action" value="add">Store</button>
+    <div id="picklist-error" class="error"></div>
+  </form>
+
+  <!-- Range Generator -->
+  <form method="post">
+    <label>Date:</label>
+    <input type="date" name="date" required>
+    <label>Start:</label>
+    <input name="start" required>
+    <label>End:</label>
+    <input name="end" required>
+    <label>Carrier:</label>
+    <select name="carrier">
+      {% for c in carriers %}
+        <option value="{{ c }}">{{ c }}</option>
+      {% endfor %}
+    </select>
+    <button name="action" value="range">Generate</button>
+  </form>
+
+  {% if stored %}
+  <form method="post" id="deleteForm">
+    <table>
+      <tr>
+        <th></th>
+        <th>Generated Picklist</th>
+        <th>Carrier</th>
+      </tr>
+      {% for item, carrier in stored %}
+      <tr>
+        <td><input type="checkbox" name="delete_items" value="{{ item }}"></td>
+        <td>{{ item }}</td>
+        <td>{{ carrier }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <p>
+      <input type="checkbox" id="select-all"> <label for="select-all">Select All</label>
+    </p>
+
+    <button id="trigger-delete" type="button">🗑 Delete Selected</button>
+    <input type="hidden" name="action" value="multi_delete">
+  </form>
+  {% endif %}
+
+  {% if message %}
+  <p style="background:#003366; color:white; font-weight: bold;">⚠ {{ message }}</p>
+   {% endif %}
+
+  <p><a href="/main">← Back to Main Page</a></p>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="confirmModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:white; padding:30px 40px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.3); text-align:center;">
+      <p style="font-size:18px; margin-bottom:20px;">Are you sure you want to delete selected items?</p>
+      <button id="confirmYes" type="button" style="margin-right:20px; background:#d9534f; color:white; padding:8px 14px; border:none; border-radius:5px;">Yes</button>
+      <button id="confirmNo" type="button" style="background:#5bc0de; color:white; padding:8px 14px; border:none; border-radius:5px;">No</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const picklistForm = document.querySelector("form");
+      const picklistInput = document.getElementById("picklist");
+      const picklistErr = document.getElementById("picklist-error");
+
+      picklistForm?.addEventListener("submit", function(e) {
+        if (picklistInput && picklistInput.value.trim().length !== 13) {
+          e.preventDefault();
+          picklistErr.textContent = "⚠ Picklist must be exactly 13 characters.";
+        } else {
+          picklistErr.textContent = "";
+        }
+      });
+
+      const selectAll = document.getElementById("select-all");
+      selectAll?.addEventListener("change", function () {
+        const checkboxes = document.querySelectorAll("input[type='checkbox'][name='delete_items']");
+        checkboxes.forEach(cb => cb.checked = this.checked);
+      });
+
+      const deleteBtn = document.getElementById("trigger-delete");
+      const modal = document.getElementById("confirmModal");
+      const yesBtn = document.getElementById("confirmYes");
+      const noBtn = document.getElementById("confirmNo");
+      const deleteForm = document.getElementById("deleteForm");
+
+      deleteBtn?.addEventListener("click", function() {
+        modal.style.display = "flex";
+      });
+
+      yesBtn?.addEventListener("click", function() {
+        modal.style.display = "none";
+        deleteForm?.submit(); // 🔧 Finally submits here
+      });
+
+      noBtn?.addEventListener("click", function() {
+        modal.style.display = "none";
+      });
+    });
+  </script>
+</body>
+</html>
