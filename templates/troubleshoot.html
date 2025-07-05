@@ -2,128 +2,98 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Troubleshoot List | CTS LOGISTICS</title>
+  <title>Troubleshoot | CTS LOGISTICS</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
-    /* Keep Bootstrap dark header look */
-    thead.table-dark th {
-      background-color: #212529;
-      color: white;
-    }
+    thead.table-dark th { background-color: #212529; color: white; }
+    tbody tr:nth-child(odd) { background-color: #f2f2f2; }
+    tbody tr:hover { background-color: #ffe; }
+    .table-success td { background-color: #d4edda !important; }
+    .table-danger td { background-color: #f8d7da !important; }
 
-    /* Alternating row colors (like scan.html) */
-    tbody tr:nth-child(odd) {
-      background-color: #f2f2f2;
-    }
-
-    tbody tr:hover {
-      background-color: #ffe;
-    }
-
-    /* Flag badge colors */
-    .flag-badge {
-      font-weight: bold;
-      padding: 0.2rem 0.6rem;
-      border-radius: 0.4rem;
-      font-size: 0.75rem;
-      display: inline-block;
-    }
-
-    .flag-badge.done {
-      background-color: #198754;
-      color: white;
-    }
-
-    .flag-badge.not-done {
-      background-color: #dc3545;
-      color: white;
-    }
-
-    /* Highlight code column */
-    .code-cell {
-      font-family: monospace;
-      font-weight: bold;
-    }
-
-    /* Modal styles (unchanged) */
     #confirmModal {
-      position: fixed;
-      inset: 0;
-      z-index: 1050;
-      background: rgba(0, 0, 0, 0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+      z-index: 1050; display: none; align-items: center; justify-content: center;
     }
-
     #confirmBox {
-      background: white;
-      padding: 2rem 2.5rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-      text-align: center;
+      background: white; padding: 2rem 2.5rem; border-radius: 0.5rem;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.25); text-align: center;
     }
-
-    #confirmBox h5 {
-      margin-bottom: 1.25rem;
-    }
+    #confirmBox h5 { margin-bottom: 1.25rem; }
   </style>
 </head>
 
 <body class="p-3 bg-light">
   <a href="{{ url_for('main_page') }}" class="btn btn-secondary btn-sm mb-3">← Back to Main Page</a>
+  <h3 class="mb-3">Troubleshoot List</h3>
 
-  <h3 class="mb-3">Troubleshoot Lists</h3>
+  {% for block_title, rows in [("Missing Block", buckets.Missing),
+                               ("Wrong Picked Block", buckets.WrongPicked),
+                               ("TSP Block", buckets.TSP),
+                               ("MoreSkid Block", buckets.MoreSkid)] %}
+    <h5 class="mt-4">{{ block_title }}</h5>
 
-  <!-- Delete form -->
-  <form id="bulkForm" action="{{ url_for('delete_selected_troubleshoot') }}" method="post"></form>
+    <form method="post" action="{{ url_for('update_trouble_remark') }}">
+      <table class="table table-bordered table-hover align-middle bg-white">
+        <thead class="table-dark">
+          <tr>
+            <th>SN</th>
+            <th>Picklist</th>
+            <th>Carrier</th>
+            <th>PickerRemark</th>
+            <th>Comment</th>
+            <th>Location</th>
+            <th>SKU</th>
+            <th>Item Qty</th>
+            <th>Problem</th>
+            <th>Scanner</th>
+            <th>Update Remark</th>
+          </tr>
+        </thead>
+        <tbody>
+  {% for r in rows %}
+  <tr
+  {% set remark = r[9].strip().lower() %}
+  {% if remark == "done" %}
+    class="table-success"
+  {% elif remark in ["nf", "n.f", "n f"] %}
+    class="table-danger"
+  {% elif remark != "" and remark != "-" %}
+    class="table-warning"
+  {% endif %}
+>
+    <td>{{ loop.index }}</td>
+    {% set tag = tags.get((r[0], r[8])) %}
+    <td>{{ r[0] }}{% if tag %} ({{ tag.split(',')[0].replace('(', '').replace(')', '') }}){% endif %}</td>
+    <td>{{ r[1] }}</td>
+    <td>{{ r[3] }}</td>
+    <td>{{ r[4] }}</td>
+    <td>{{ r[5] }}</td>
+    <td>{{ r[6] }}</td>
+    <td>{{ r[7] }}</td>
+    <td>{{ r[8] }}</td>
+    <td>{{ r[2] }}</td>
 
-  <table class="table table-bordered table-hover align-middle bg-white">
-    <thead class="table-dark">
-      <tr>
-        <th style="width:55px">Select</th>
-        <th style="width:155px">Picklist (13)</th>
-        <th>Comment </th>
-        <th>Scanners</th>
-        <th>Carrier</th>
-        <th style="width:90px">Result</th>
-        <th style="width:190px">Update&nbsp;Remark</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in data %}
-      {% set code, comment, scanners, carrier, result, flag = row[:6] %}
-      <tr>
-        <td class="text-center">
-          <input type="checkbox" name="delete_items" form="bulkForm"
-                 value="{{ '\t'.join([code, comment, scanners, carrier, result, flag]) }}">
-        </td>
-        <td class="code-cell">{{ code }}</td>
-        <td>{{ comment }}</td>
-        <td>{{ scanners }}</td>
-        <td>{{ carrier }}</td>
-        <td class="text-center">
-          <span class="flag-badge {% if 'done' in flag.lower() or '✅' in flag %}done{% else %}not-done{% endif %}">
-            {{ flag }}
-          </span>
-        </td>
-        <td>
-          <form action="{{ url_for('update_trouble_remark') }}" method="post" class="d-flex gap-1 m-0">
-            <input type="hidden" name="first13" value="{{ code }}">
-            <input type="text" name="remark" class="form-control form-control-sm"
-                   placeholder="Enter comment" value="{{ '' if result == '-' else result }}">
-            <button type="submit" class="btn btn-success btn-sm">Save</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <div class="d-flex gap-2 mt-2">
-    <button type="button" id="selectAll" class="btn btn-outline-primary btn-sm">Select All</button>
-    <button type="submit" id="deleteBtn" class="btn btn-danger btn-sm" form="bulkForm">Delete Selected</button>
-  </div>
+    <td>
+      <form method="post" action="{{ url_for('update_trouble_remark') }}" class="d-flex">
+        <input type="hidden" name="code" value="{{ r[0] }}">
+        <input type="hidden" name="problem" value="{{ r[8] }}">
+        <input name="remark" class="form-control form-control-sm me-2"
+               value="{{ r[9] if r[9] != '-' else '' }}" placeholder="Type 'done'">
+        <button class="btn btn-sm btn-outline-primary">Save</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</tbody>
+      </table>
+      {% if rows %}
+        <button class="btn btn-primary btn-sm">💾 Save</button>
+      {% else %}
+        <p class="text-muted">No issues in this block 🎉</p>
+      {% endif %}
+    </form>
+  {% endfor %}
 
   <!-- Confirm modal -->
   <div id="confirmModal">
@@ -136,31 +106,6 @@
     </div>
   </div>
 
-  <script>
-    // Select all checkboxes
-    document.getElementById('selectAll').onclick = () =>
-      document.querySelectorAll('input[name="delete_items"]')
-              .forEach(cb => cb.checked = true);
 
-    // Delete confirmation modal
-    const modal = document.getElementById('confirmModal');
-    const delBtn = document.getElementById('deleteBtn');
-
-    delBtn.onclick = evt => {
-      const anySel = [...document.querySelectorAll('input[name="delete_items"]')].some(cb => cb.checked);
-      if (!anySel) {
-        evt.preventDefault();
-        return;
-      }
-      modal.style.display = 'flex';
-      evt.preventDefault();
-    };
-
-    document.getElementById('confirmOk').onclick = () =>
-      document.getElementById('bulkForm').submit();
-
-    document.getElementById('confirmNo').onclick = () =>
-      modal.style.display = 'none';
-  </script>
 </body>
 </html>

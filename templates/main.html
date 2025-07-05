@@ -46,22 +46,16 @@ body {
 
     <ul class="list-unstyled text-start mb-0">
         <li class="mb-2">
-            <a href="{{ url_for('enter') }}">📝  Creating Picklists</a>
-        </li>
-        <li class="mb-2">
-            <a href="{{ url_for('scan') }}">🗂 Scanned Details</a>
-        </li>
-        <li class="mb-2">
             <a href="{{ url_for('account', name='global') }}">👤 Individual Scan Accounts</a>
         </li>
         <li class="mb-2">
             <a href="{{ url_for('troubleshoot') }}">⚠ Troubleshoot Lists</a>
         </li>
         <li class="mb-2">
-            <a href="{{ url_for('create_account') }}">➕ Create / Delete Account</a>
+            <a href="{{ url_for('create_account') }}">➕ Create / Delete Account & Carrier</a>
         </li>
         <li>
-            <a href="{{ url_for('unscanned') }}">📄All Unscanned Picklists</a>
+            <a href="{{ url_for('unscanned') }}">📄 All Unscanned Picklists</a>
         </li>
     </ul>
 </div>

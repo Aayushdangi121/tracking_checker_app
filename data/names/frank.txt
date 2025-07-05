@@ -1,4 +1,0 @@
-PL62506280002	Frank	Good (Frank, Kevin, Patel)
-PL62506290001	Frank	Good (Frank, Global)
-PL62506290002	Frank	Not Completed Yet (Frank)
-PL62506240025	Frank	Not Completed Yet (Frank), Good (Frank)

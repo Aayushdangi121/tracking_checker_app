@@ -2,115 +2,263 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>{{ name }} — Scanned</title>
+  <title>{{ name }} — Account</title>
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
 
 <body class="p-4">
 
-  <!-- switch account -->
-  <label class="fw-bold">Switch Account:</label>
-  <select id="switch" class="form-select d-inline w-auto ms-1"
+<!-- Switch Account -->
+<form method="get" class="mb-3">
+  <label class="fw-bold me-2">Switch Account:</label>
+  <select class="form-select d-inline w-auto"
           onchange="if(this.value) location.href='/account/'+this.value;">
-    <option value="">Select…</option>
+    <option value="">Choose…</option>
     {% for u in users %}
-      <option value="{{ u }}" {% if u==name %}selected{% endif %}>{{ u }}</option>
+      <option value="{{ u }}" {% if u.lower() == name.lower() %}selected{% endif %}>{{ u }}</option>
     {% endfor %}
   </select>
+</form>
 
-  <!-- carrier selector (persists via URL param) -->
-  <label class="fw-bold ms-3">Carrier:</label>
-  <select id="carSel" class="form-select d-inline w-auto ms-1"
-          onchange="location.href='/account/{{ name }}?carrier='+this.value;">
-    {% for c in carriers %}
-      <option value="{{ c }}" {% if c==selected_carrier %}selected{% endif %}>{{ c }}</option>
-    {% endfor %}
+<h2 class="mt-2">👤 <span class="text-primary">{{ name }} — Account</span></h2>
+
+{% if message and not message.startswith("❌") %}
+  <div class="alert alert-warning mt-2">{{ message }}</div>
+{% endif %}
+
+<!-- Input Form -->
+ <!-- Input Form -->
+<form method="POST" class="border p-3 mb-3 rounded bg-light">
+  <div class="row g-2">
+
+    <div class="col-md-2">
+      <label>Picklist Number</label>
+      <input name="picklist" maxlength="13" required class="form-control">
+      {% if message and "13 letters" in message %}
+        <small class="text-danger">{{ message }}</small>
+      {% endif %}
+    </div>
+
+    <div class="col-md-2">
+      <label>Problem</label>
+      <select name="problem" id="problemSelect" class="form-select">
+        <option value="-">-</option>
+        <option>Missing</option><option>WrongPicked</option>
+        <option>TSP</option><option>MoreSkid</option><option>NoProblem</option>
+      </select>
+      {% if message and "Missing / WrongPicked" in message %}
+        <small class="text-danger">{{ message }}</small>
+      {% endif %}
+
+    </div>
+    </div> <!-- Close Problem -->
+
+<!-- New “With” select for NoProblem logic -->
+<div class="col-md-2" id="withProblemBox" style="display:none">
+  <label>With</label>
+  <select name="with_problem" class="form-select">
+    <option value="-">-</option>
+    <option>Missing</option>
+    <option>WrongPicked</option>
+    <option>TSP</option> <option>MoreSkid</option>
   </select>
-
-  <h2 class="mt-3">👤 <span class="text-primary">{{ name }} — Scanned</span></h2>
-
-  {% if message %}
-    <div class="alert alert-warning mt-2">{{ message }}</div>
+  {% if message and "With" in message %}
+    <small class="text-danger">{{ message }}</small>
   {% endif %}
+</div>
 
-  <!-- scan form -->
-  <form method="POST" class="input-group mb-3">
-    <input name="picklist" class="form-control" placeholder="Enter / Scan picklist">
-    <input type="hidden" name="carrier" value="{{ selected_carrier }}">
-    <button class="btn btn-primary">Check</button>
-  </form>
+    <div class="col-md-2">
+      <label>Remark</label>
+      <select name="picker_remark" class="form-select">
+        <option value="-">-</option>
+        <option>PickerMentioned</option><option>PickerDonotMentioned</option>
+      </select>
+      {% if message and "PickerMentioned or PickerDonotMentioned" in message %}
+        <small class="text-danger">{{ message }}</small>
+      {% endif %}
+    </div>
 
-  <!-- delete rows -->
-  <form method="POST" id="deleteForm">
-    <button type="button" class="btn btn-dark btn-sm" onclick="selAll()">Select All</button>
-    <button type="button" class="btn btn-danger btn-sm ms-1" id="trigger-delete">Delete Selected</button>
-    <input type="hidden" name="delete_items" value="1">
-
-    <table class="table table-bordered mt-2">
-      <thead class="table-dark">
-        <tr>
-          <th style="width:30px"></th>
-          <th>Scanned Picklist</th>
-          <th>Carrier</th>
-          <th>Scanner Name</th>
-          <th>Remark</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in history %}
-        <tr>
-          <td><input type="checkbox" name="delete_items" value="{{ r[0] }}"></td>
-          <td>{{ r[0] }}</td>
-          <td>{{ r[1] }}</td>
-          <td>{{ r[2] }}</td>
-          <td>{{ r[3] }}</td>
-        </tr>
+    <div class="col-md-2">
+      <label>Carrier</label>
+      <select name="carrier" class="form-select">
+        {% for c in carriers %}
+          <option value="{{ c }}" {% if c==selected_carrier %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
-      </tbody>
-    </table>
-  </form>
+      </select>
+      {% if message and "Choose a carrier" in message %}
+        <small class="text-danger">{{ message }}</small>
+      {% endif %}
+    </div>
 
-  <p class="mt-3">
-   
-    ↩ <a href="{{ url_for('main_page') }}">Back to Main Page</a>
-  </p>
-
-  <!-- Delete Confirmation Modal -->
-  <div id="confirmModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-    <div style="background:white; padding:30px 40px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.3); text-align:center;">
-      <p style="font-size:18px; margin-bottom:20px;">Are you sure you want to delete selected items?</p>
-      <button id="confirmYes" type="button" style="margin-right:20px; background:#d9534f; color:white; padding:8px 14px; border:none; border-radius:5px;">Yes</button>
-      <button id="confirmNo" type="button" style="background:#5bc0de; color:white; padding:8px 14px; border:none; border-radius:5px;">No</button>
+    <div class="col-md-2">
+      <label>Item</label>
+      <input name="item_qty" class="form-control" type="number" placeholder="Number only">
+      {% if message and "Item quantity" in message %}
+        <small class="text-danger">{{ message }}</small>
+      {% endif %}
     </div>
   </div>
+  <div class="row g-2 mt-2">
+    <div class="col-md-3">
+      <label>Comment</label>
+      <input name="comment" class="form-control" placeholder="Write anything">
+    </div>
 
-  <script>
-    function selAll(){
-      document.querySelectorAll('input[name="delete_items"]')
-              .forEach(cb => cb.checked = true);
-    }
+    <div class="col-md-3">
+      <label>SKU</label>
+      <input name="sku" class="form-control" placeholder="Write anything">
+    </div>
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const deleteBtn = document.getElementById("trigger-delete");
-      const modal = document.getElementById("confirmModal");
-      const yesBtn = document.getElementById("confirmYes");
-      const noBtn = document.getElementById("confirmNo");
-      const deleteForm = document.getElementById("deleteForm");
+    <div class="col-md-3">
+      <label>Location</label>
+      <input name="location" class="form-control" placeholder="Write anything">
+    </div>
 
-      deleteBtn?.addEventListener("click", function() {
-        modal.style.display = "flex";
-      });
+    <div class="col-md-3 d-grid align-items-end">
+      <button class="btn btn-primary mt-2">➕ Add Entry</button>
+    </div>
 
-      yesBtn?.addEventListener("click", function() {
-        modal.style.display = "none";
-        deleteForm?.submit();
-      });
+  </div>
+</form>
 
-      noBtn?.addEventListener("click", function() {
-        modal.style.display = "none";
-      });
-    });
-  </script>
+
+<!-- Table -->
+<form method="POST" id="deleteForm">
+  <button type="button" class="btn btn-dark btn-sm" onclick="selAll()">Select All</button>
+  <button type="button" class="btn btn-danger btn-sm ms-1" id="trigger-delete">Delete Selected</button>
+
+  <table class="table table-bordered mt-2">
+    <thead class="table-dark">
+      <tr>
+        <th style="width:30px"></th>
+        <th>Scanned Picklist</th>
+        <th>Carrier</th>
+        <th>PickerRemark</th>
+        <th>Comment</th>
+        <th>Location</th>
+        <th>SKU</th>
+        <th>Item Qty</th>
+        <th>Problem</th>
+        <th>Scanner</th>
+      </tr>
+    </thead>
+    <tbody>
+  {% if rows %}
+    {% for r in rows %}
+      {% set row_class = '' %}
+      {% if r[IDX['flag']] == '✅' %}
+        {% set row_class = 'table-success' %}
+      {% elif r[IDX['flag']] == '❌' %}
+        {% set row_class = 'table-danger' %}
+      {% endif %}
+
+      <tr class="{{ row_class }}">
+  <td>
+  <input type="checkbox"
+         name="delete_items"
+         value="{{ r[IDX['code']] }}||{{ r[IDX['problem']] }}">
+</td>
+  <td>{{ r[IDX['code']] }}</td>
+  <td>{{ r[IDX['carrier']] }}</td>
+  <td>{{ r[IDX['picker_remark']] }}</td>
+  <td>{{ r[IDX['comment']] }}</td>
+  <td>{{ r[IDX['location']] }}</td>
+  <td>{{ r[IDX['sku']] }}</td>
+  <td>{{ r[IDX['item_qty']] }}</td>
+  <td>{{ r[IDX['problem']] }}</td>
+  <td>{{ r[IDX['user']] }}</td>
+</tr>
+    {% endfor %}
+  {% endif %}
+</tbody>
+  </table>
+</form>
+
+<p class="mt-3">↩ <a href="{{ url_for('main_page') }}">Back to Main Page</a></p>
+
+<!-- Delete Confirmation Modal -->
+<div id="confirmModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+  <div style="background:white; padding:30px 40px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.3); text-align:center;">
+    <p style="font-size:18px; margin-bottom:20px;">Are you sure you want to delete selected items?</p>
+    <button id="confirmYes" type="button" style="margin-right:20px; background:#d9534f; color:white; padding:8px 14px; border:none; border-radius:5px;">Yes</button>
+    <button id="confirmNo" type="button" style="background:#5bc0de; color:white; padding:8px 14px; border:none; border-radius:5px;">No</button>
+  </div>
+</div>
+
+<script>
+  function selAll(){
+    document.querySelectorAll('input[name="delete_items"]')
+            .forEach(cb => cb.checked = true);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const deleteBtn = document.getElementById("trigger-delete");
+    const modal = document.getElementById("confirmModal");
+    const yesBtn = document.getElementById("confirmYes");
+    const noBtn = document.getElementById("confirmNo");
+    const deleteForm = document.getElementById("deleteForm");
+
+    deleteBtn?.addEventListener("click", () => modal.style.display = "flex");
+    yesBtn?.addEventListener("click", () => { modal.style.display = "none"; deleteForm?.submit(); });
+    noBtn?.addEventListener("click", () => modal.style.display = "none");
+  });
+
+ function toggleOptionalFields() {
+  const prob         = document.querySelector('[name="problem"]').value;
+  const remarkDiv    = document.querySelector('[name="picker_remark"]').closest('.col-md-2');
+  const carrierDiv   = document.querySelector('[name="carrier"]').closest('.col-md-2');
+  const qtyInput     = document.querySelector('[name="item_qty"]');
+  const withBox      = document.getElementById("withProblemBox");
+
+  if (prob === "NoProblem") {
+    remarkDiv.style.display = "none";
+    carrierDiv.style.display = "none";
+    qtyInput.removeAttribute("required");
+    withBox.style.display = "";  // ✅ Show "With" dropdown
+  } else {
+    remarkDiv.style.display = "";
+    carrierDiv.style.display = "";
+    qtyInput.setAttribute("required", "required");
+    withBox.style.display = "none";  // ❌ Hide "With" dropdown
+  }
+}
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelector('[name="problem"]').addEventListener("change", toggleOptionalFields);
+    toggleOptionalFields(); // initial
+  });
+</script>
+<script>
+  // Replace with the actual list of MoreSkid picklists for this user, passed from app.py
+         const moreSkidPicklists = {{ more_skid_picklists | tojson  | safe }};
+
+  function showMoreSkidAlert(picklist) {
+    const existingModal = document.getElementById("moreSkidModal");
+    if (existingModal) return;  // avoid duplicates
+
+    const modal = document.createElement("div");
+    modal.id = "moreSkidModal";
+    modal.style = "position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:center; justify-content:center;";
+    modal.innerHTML = `
+      <div style="background:white; padding:2rem; border-radius:10px; text-align:center; box-shadow:0 0 10px rgba(0,0,0,0.3)">
+        <h4>🚨 Attention</h4>
+        <p>Please complete other skid of <strong>${picklist}</strong></p>
+        <button onclick="document.getElementById('moreSkidModal').remove()">OK</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  // Show attention popup for every picklist in MoreSkid
+  function triggerMoreSkidAlerts() {
+    moreSkidPicklists.forEach(pk => showMoreSkidAlert(pk));
+  }
+
+  // Show immediately and then every 5 minutes (300000 ms)
+  document.addEventListener("DOMContentLoaded", () => {
+    triggerMoreSkidAlerts();
+    setInterval(triggerMoreSkidAlerts, 10000); // every 5 minutes
+  });
+</script>
 </body>
 </html>

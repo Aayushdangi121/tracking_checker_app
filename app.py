@@ -527,5 +527,5 @@ def check_dismissed():
         return "false"
     dismissed = load_dismissed_alerts()
     return "true" if (code, problem) in dismissed else "false"
-##if __name__ == "__main__":
-   ## app.run()
+if __name__ == "__main__":
+   app.run(debug=True)

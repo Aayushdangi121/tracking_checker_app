@@ -27,6 +27,8 @@
       border-radius: 8px;
       box-shadow: 0 0 10px rgba(0,0,0,0.08);
       text-align: center;
+      width: 100%;
+      max-width: 400px;
     }
 
     input {
@@ -59,6 +61,18 @@
       font-weight: 500;
     }
 
+    .form-group {
+      text-align: left;
+    }
+
+    .toggle-password {
+      font-size: 13px;
+      color: #007bff;
+      cursor: pointer;
+      margin-top: -8px;
+      text-align: right;
+      user-select: none;
+    }
   </style>
 </head>
 <body>
@@ -70,10 +84,28 @@
   {% endif %}
 
   <form method="post">
-    <input name="username" placeholder="Username" required><br>
-    <input name="password" type="password" placeholder="Password" required><br>
+    <div class="form-group">
+      <input name="username" placeholder="Username" autocomplete="username" required>
+    </div>
+    <div class="form-group">
+      <input id="password" name="password" type="password" placeholder="Password" autocomplete="current-password" required>
+      <div class="toggle-password" onclick="togglePassword()">👁 Show Password</div>
+    </div>
     <button type="submit">Login</button>
   </form>
 
+  <script>
+    function togglePassword() {
+      const passField = document.getElementById('password');
+      const toggleText = document.querySelector('.toggle-password');
+      if (passField.type === 'password') {
+        passField.type = 'text';
+        toggleText.textContent = '🙈 Hide Password';
+      } else {
+        passField.type = 'password';
+        toggleText.textContent = '👁 Show Password';
+      }
+    }
+  </script>
 </body>
 </html>

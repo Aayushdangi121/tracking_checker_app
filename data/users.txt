@@ -2,3 +2,5 @@ Global	{'password_hash': '', 'role': 'limited'}
 Frank	
 Patel	
 user1	
+KEVIN	
+Kevin	

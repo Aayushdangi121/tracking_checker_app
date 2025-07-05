@@ -93,7 +93,6 @@
             text-decoration: underline;
             color: #ff5252;
         }
-        /* delete confirmation */
         #confirmModal {
             position: fixed;
             inset: 0;
@@ -112,6 +111,28 @@
         #confirmBox h5 {
             margin-bottom: 1rem;
             color: #000;
+        }
+        /* new additions */
+        .info-block {
+            background: #121212;
+            padding: 20px;
+            margin-top: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(255, 255, 255, 0.05);
+            max-width: 600px;
+        }
+        .info-block h4 {
+            margin-bottom: 16px;
+            color: #ff5252;
+        }
+        .info-block ul {
+            list-style: none;
+            padding-left: 0;
+            color: #ccc;
+        }
+        .info-block li {
+            margin-bottom: 8px;
+            font-size: 15px;
         }
     </style>
 </head>
@@ -162,6 +183,25 @@
     {% if message %}
     <div class="msg">{{ message }}</div>
     {% endif %}
+
+    <!-- Summary blocks -->
+    <div class="info-block">
+        <h4>🔐 Registered Accounts</h4>
+        <ul>
+            {% for u in users %}
+            <li>{{ u }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="info-block">
+        <h4>📦 Available Carriers</h4>
+        <ul>
+            {% for c in carriers %}
+            <li>{{ c }}</li>
+            {% endfor %}
+        </ul>
+    </div>
 
     <p><a href="{{ url_for('main_page') }}">← Back to Main Page</a></p>
 
